@@ -78,6 +78,13 @@
       });
     };
 
+    var resetFilter = function() {
+      if ($filter.val() !== '') {
+        $filter.val('');
+        $currentOptions.filter(':hidden').show();
+      }
+    };
+
     var refreshSelected = function() {
       $currentOptions.removeClass('yo-combo-option-selected');
       if ($currentValue.val() !== '') {
@@ -117,6 +124,7 @@
     };
 
     var setValue = function(value) {
+      resetFilter();
       if (value === '') {
         var $prev = $currentSelect.prev();
         if ($prev.exists()) {
@@ -142,17 +150,18 @@
       }
     };
 
+    var isLast = function($el) {
+      return !$el.next().exists();
+    };
+
     var close = function() {
       $root.removeClass('yo-combo-on');
-      if (!$currentSelect.next().exists() && $currentValue.val() !== '') {
+      if (isLast($currentSelect) && $currentValue.val() !== '') {
         var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').text();
         $display.html(displayValue);
       }
       $display.focus();
-      if ($filter.val('') !== '') {
-        $filter.val('');
-        $currentOptions.show();
-      }
+      resetFilter();
     };
 
     $display.click(function(ev) {
