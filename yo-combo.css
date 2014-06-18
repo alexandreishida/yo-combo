@@ -51,18 +51,18 @@
   background-color: transparent;
 }
 
-.yo-combo-options {
+ul.yo-combo-options {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.yo-combo-options li {
+ul.yo-combo-options > li {
   padding: 3px 5px;
   cursor: pointer;
 }
 
-.yo-combo-option-selected {
+li.yo-combo-option-selected {
   background: #3875d7;
   color: #fff;
 }

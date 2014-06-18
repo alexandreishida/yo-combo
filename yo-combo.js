@@ -17,7 +17,17 @@
     DOWN: 40,
     LEFT: 37,
     ENTER: 13,
-    ESC: 27
+    ESC: 27,
+    isArrow: function(keyCode) {
+      switch (keyCode) {
+        case this.UP:
+        case this.RIGHT:
+        case this.DOWN:
+        case this.LEFT:
+          return true;
+      }
+      return false;
+    }
   };
 
   $.fn.yocombo = function() {
@@ -68,21 +78,40 @@
       });
     };
 
+    var refreshSelected = function() {
+      $currentOptions.removeClass('yo-combo-option-selected');
+      if ($currentValue.val() !== '') {
+        $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').addClass('yo-combo-option-selected');
+      } else {
+        $currentOptions.first().addClass('yo-combo-option-selected');
+      }
+    };
+
     var setCurrentSelect = function($select, callback) {
+      var prevValue = $currentValue != null ? $currentValue.val() : '';
+
       $currentSelect = $select;
       $currentValue = $select.find('.yo-combo-value');
       $currentOptions = $select.find('.yo-combo-options li');
 
+      $display.html($currentSelect.data('display'));
+
       if (!$currentOptions.exists()) { // or $select.data('ajax') !== 'cached'
-        // console.log($select.data('remote-url'));
-        // $.getJSON($select.data('remote-url'));
+        var remoteUrl = $select.data('yo-remote-url').replace(/\{prev\}/g, prevValue);
+        $.getJSON(remoteUrl, function(json) {
+          var option = null, html = [];
+          for (var i=0 ; i<json.count ; i++) {
+            option = json.options[i];
+            html.push('<li data-value="'+ option[0] +'">'+ option[1] +'</li>');
+          }
+          $currentSelect.find('.yo-combo-options').html(html.join(''));
+
+          $currentOptions = $select.find('.yo-combo-options li');
+          refreshSelected();
+          callback();
+        });
       } else {
-        $currentOptions.filter('.yo-combo-option-selected').removeClass('yo-combo-option-selected');
-        if ($currentValue.val() !== '') {
-          $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').addClass('yo-combo-option-selected');
-        } else {
-          $currentOptions.first().addClass('yo-combo-option-selected');
-        }
+        refreshSelected();
         callback();
       }
     };
@@ -92,9 +121,11 @@
         var $prev = $currentSelect.prev();
         if ($prev.exists()) {
           $currentValue.val('');
-          $currentOptions.remove();
+          var _$currentOptions = $currentOptions;
           setCurrentSelect($prev, function() {
-            $slider.animate({marginLeft: $prev.position().left * -1}, 350);
+            $slider.animate({marginLeft: $prev.position().left * -1}, 350, function() {
+              _$currentOptions.remove();
+            });
           });
         }
       } else {
@@ -105,6 +136,7 @@
             $slider.animate({marginLeft: $next.position().left * -1}, 350);
           });
         } else {
+          $display.html($currentOptions.filter('.yo-combo-option-selected').text());
           close();
         }
       }
@@ -112,14 +144,24 @@
 
     var close = function() {
       $root.removeClass('yo-combo-on');
+      if (!$currentSelect.next().exists() && $currentValue.val() !== '') {
+        var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').text();
+        $display.html(displayValue);
+      }
       $display.focus();
+      if ($filter.val('') !== '') {
+        $filter.val('');
+        $currentOptions.show();
+      }
     };
 
     $display.click(function(ev) {
       ev.preventDefault();
       if (!$root.hasClass('yo-combo-on')) {
         $root.addClass('yo-combo-on');
+        $display.html($currentSelect.data('display'));
         $filter.focus();
+        refreshSelected();
       } else {
         close();
       }
@@ -148,7 +190,10 @@
       }
     });
 
-    $filter.keyup(function() {
+    $filter.keyup(function(ev) {
+      if (KEY.isArrow(ev.keyCode) || ev.keyCode == KEY.ENTER) {
+        return ;
+      }
       if (this.value !== '') {
         $currentOptions.hide();
         var filterText = stripDiacritics(this.value.toLowerCase())
@@ -156,12 +201,12 @@
           var optionText = stripDiacritics($(this).text().toLowerCase());
           return optionText.indexOf(filterText) > -1;
         }).show();
-        // select first
-        $currentOptions.filter('.yo-combo-option-selected').removeClass('yo-combo-option-selected');
-        $currentOptions.first().addClass('yo-combo-option-selected');
       } else {
         $currentOptions.show();        
       }
+      // select first
+      $currentOptions.filter('.yo-combo-option-selected').removeClass('yo-combo-option-selected');
+      $currentOptions.filter(':visible').first().addClass('yo-combo-option-selected');
     });
 
     $root.on('mouseenter', '.yo-combo-options > li', function(ev) {
@@ -180,5 +225,5 @@
 
   $(function() {
     $('.yo-combo[data-yo-auto-init="true"]').yocombo();  
-  })
+  });
 })(jQuery);
