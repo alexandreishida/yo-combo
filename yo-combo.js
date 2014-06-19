@@ -104,7 +104,7 @@
       $display.html($currentSelect.data('display'));
 
       if (!$currentOptions.exists()) { // or $select.data('ajax') !== 'cached'
-        var remoteUrl = $select.data('yo-remote-url').replace(/\{prev\}/g, prevValue);
+        var remoteUrl = $select.data('remote-url').replace(/\{prev\}/g, prevValue);
         $.getJSON(remoteUrl, function(json) {
           var option = null, html = [];
           for (var i=0 ; i<json.count ; i++) {
@@ -233,6 +233,6 @@
   };
 
   $(function() {
-    $('.yo-combo[data-yo-auto-init="true"]').yocombo();  
+    $('.yo-combo[data-auto-init="true"]').yocombo();  
   });
 })(jQuery);
