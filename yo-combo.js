@@ -94,6 +94,22 @@
       }
     };
 
+    var isFirst = function($el) {
+      return !$el.prev().exists();
+    };
+
+    var refreshDisplay = function() {
+      if (!isFirst($currentSelect)) {
+        if (!$root.find('.yo-combo-back').exists()) {
+          $display.before('<a href="#" class="yo-combo-back">back</a>');
+        }
+      } else {
+        $root.find('.yo-combo-back').remove();
+      }
+
+      $display.html($currentSelect.data('display'));
+    };
+
     var setCurrentSelect = function($select, callback) {
       var prevValue = $currentValue != null ? $currentValue.val() : '';
 
@@ -101,7 +117,7 @@
       $currentValue = $select.find('.yo-combo-value');
       $currentOptions = $select.find('.yo-combo-options li');
 
-      $display.html($currentSelect.data('display'));
+      refreshDisplay();
 
       if (!$currentOptions.exists()) { // or $select.data('ajax') !== 'cached'
         var remoteUrl = $select.data('remote-url').replace(/\{prev\}/g, prevValue);
@@ -156,6 +172,7 @@
 
     var close = function() {
       $root.removeClass('yo-combo-on');
+      $root.find('.yo-combo-back').remove();
       if (isLast($currentSelect) && $currentValue.val() !== '') {
         var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').text();
         $display.html(displayValue);
@@ -168,7 +185,7 @@
       ev.preventDefault();
       if (!$root.hasClass('yo-combo-on')) {
         $root.addClass('yo-combo-on');
-        $display.html($currentSelect.data('display'));
+        refreshDisplay();
         $filter.focus();
         refreshSelected();
       } else {
@@ -227,6 +244,12 @@
     $root.on('click', '.yo-combo-options > li', function(ev) {
       $filter.focus();
       setValue($(this).data('value'));
+    });
+
+    $root.on('click', '.yo-combo-back', function(ev) {
+      ev.preventDefault();
+      $filter.focus();
+      setValue('');
     });
 
     init();

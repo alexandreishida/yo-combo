@@ -9,6 +9,11 @@
   text-align: left;
 }
 
+.yo-combo-back {
+  float: left;
+  padding: 3px 5px;
+}
+
 .yo-combo-display {
   display: block;
   width: 100%;
