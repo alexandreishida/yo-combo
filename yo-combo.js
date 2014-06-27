@@ -30,6 +30,14 @@
     }
   };
 
+  var isFirst = function($el) {
+    return !$el.prev().exists();
+  };
+
+  var isLast = function($el) {
+    return !$el.next().exists();
+  };
+
   $.fn.yocombo = function() {
     return this.each(function() {
       var $this = $(this);
@@ -56,6 +64,7 @@
     var $currentOptions = null;
 
     var init = function() {
+      $display.html($selects.first().data('display'));
       // debug
       if (config.debug === true) {
         $window.css('overflow-x', 'visible');
@@ -68,51 +77,18 @@
         $(this).width(displayWidth);
       });
       // discover current select
-      var $select = $selects.filter(function() {
-        return $(this).find('.yo-combo-value').val() === '';
-      }).first();
-      if (!$select.exists()) {
-        $select = $selects.last();
-      }
-      move($select);
-    };
-
-    var resetFilter = function() {
-      if ($filter.val() !== '') {
-        $filter.val('');
-        $currentOptions.filter(':hidden').show();
-      }
-    };
-
-    var refreshSelected = function() {
-      $currentOptions.removeClass('yo-combo-option-selected');
-      var $selected = null;
-      if ($currentValue.val() !== '') {
-        $selected = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').first();
-      }
-      if ($selected !== null && $selected.exists()) {
-        $selected.addClass('yo-combo-option-selected');
-        focusAtOption($selected);
-      } else {
-        $currentOptions.first().addClass('yo-combo-option-selected');
-      }
-    };
-
-    var isFirst = function($el) {
-      return !$el.prev().exists();
-    };
-
-    var refreshDisplay = function() {
-      if (!isFirst($currentSelect)) {
-        if (!$root.find('.yo-combo-back').exists()) {
-          var backLabel = $currentSelect.data('back-label') || 'Back';
-          $display.before('<a href="#" class="yo-combo-back">' + backLabel + ' ·</a>');
+      var selectIdx = null, $select = null;
+      for (var i=0 ; i<$selects.length ; i++) {
+        selectIdx = i;
+        $select = $($selects[i]);
+        if ($select.find('.yo-combo-value').val() === '') {
+          break
         }
-      } else {
-        $root.find('.yo-combo-back').remove();
       }
-
-      $display.html($currentSelect.data('display'));
+      move($select, function() {
+        refreshClosedDisplay();
+        $slider.css({marginLeft: selectIdx * displayWidth * -1});
+      });
     };
 
     var setValue = function(value) {
@@ -151,7 +127,7 @@
       if ($select.find('.yo-combo-option').exists()) {
         if ($currentTitle.text() !== '') { $currentTitle.show(); } else { $currentTitle.hide(); }
         $select.find('.yo-combo-options-wrapper').show();
-        refreshSelected();
+        selectOne();
 
         $slider.animate({marginLeft: $select.position().left * -1}, 350, function() {
           $select.siblings().find('.yo-combo-title, .yo-combo-options-wrapper').hide();
@@ -169,7 +145,7 @@
 
             if ($currentTitle.text() !== '') { $currentTitle.show(); } else { $currentTitle.hide(); }
             $select.find('.yo-combo-options-wrapper').show();
-            refreshSelected();
+            selectOne();
 
             $select.siblings().find('.yo-combo-title, .yo-combo-options-wrapper').hide();
             if (typeof(afterTransition) === 'function') {
@@ -204,32 +180,19 @@
       });
     };
 
-    var isLast = function($el) {
-      return !$el.next().exists();
-    };
-
-    var close = function() {
-      $root.removeClass('yo-combo-on');
-      $root.find('.yo-combo-back').remove();
-      if (isLast($currentSelect) && $currentValue.val() !== '') {
-        var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').data('display');
-        $display.html(displayValue);
+    var selectOne = function() {
+      $currentOptions.removeClass('yo-combo-option-selected');
+      var $selected = null;
+      if ($currentValue.val() !== '') {
+        $selected = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').first();
       }
-      $display.focus();
-      resetFilter();
-    };
-
-    $display.click(function(ev) {
-      ev.preventDefault();
-      if (!$root.hasClass('yo-combo-on')) {
-        $root.addClass('yo-combo-on');
-        refreshDisplay();
-        $filter.focus();
-        refreshSelected();
+      if ($selected !== null && $selected.exists()) {
+        $selected.addClass('yo-combo-option-selected');
+        focusAtOption($selected);
       } else {
-        close();
+        $currentOptions.first().addClass('yo-combo-option-selected');
       }
-    });
+    };
 
     var focusAtOption = function($option) {
       var $optionsWrapper = $currentSelect.find('.yo-combo-options-wrapper');
@@ -239,6 +202,51 @@
         $optionsWrapper.scrollTop( $optionsWrapper.scrollTop() + $option.position().top - 200 + $option.outerHeight() );
       }
     };
+
+    var refreshDisplay = function() {
+      if ($root.hasClass('.yo-combo-on')) {
+        if (!isFirst($currentSelect)) {
+          if (!$root.find('.yo-combo-back').exists()) {
+            var backLabel = $currentSelect.data('back-label') || 'Back';
+            $display.before('<a href="#" class="yo-combo-back">' + backLabel + ' ·</a>');
+          }
+        } else {
+          $root.find('.yo-combo-back').remove();
+        }
+        $display.html($currentSelect.data('display'));
+      }
+    };
+
+    var refreshClosedDisplay = function() {
+      if (!$root.hasClass('.yo-combo-on')) {
+        $root.find('.yo-combo-back').remove();
+        if ($currentValue.val() !== '' && isLast($currentSelect)) {
+          var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').data('display');
+          $display.html(displayValue);
+        }
+      }
+    };
+
+    var close = function() {
+      $root.removeClass('yo-combo-on');
+      refreshClosedDisplay();
+      $display.focus();
+    };
+
+    $display.click(function(ev) {
+      ev.preventDefault();
+      if (!$root.hasClass('yo-combo-on')) {
+        // reset filter
+        if ($filter.val() !== '') {
+          $filter.val('');
+          $currentOptions.filter(':hidden').show();
+        }
+        $root.addClass('yo-combo-on');
+        $filter.focus();
+      } else {
+        close();
+      }
+    });
 
     $filter.keydown(function(ev) {
       var $selected = $currentOptions.filter('.yo-combo-option-selected');
