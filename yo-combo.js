@@ -49,22 +49,23 @@
     var $window = $root.find('.yo-combo-window');
     var $slider = $root.find('.yo-combo-slider');
     var $selects = $root.find('.yo-combo-select');
-    var $options = $root.find('.yo-combo-options li');
 
     var $currentSelect = null;
     var $currentValue = null;
+    var $currentTitle = null;
     var $currentOptions = null;
 
     var init = function() {
       // debug
       if (config.debug === true) {
         $window.css('overflow-x', 'visible');
+        $root.find('.yo-combo-value').show();
       }
       // adapt width
-      var selectWidth = $display.outerWidth();
-      $slider.width(selectWidth * $selects.length);
+      var displayWidth = $display.width();
+      $slider.width(displayWidth * $selects.length);
       $selects.each(function() {
-        $(this).width(selectWidth);
+        $(this).width(displayWidth);
       });
       // discover current select
       var $select = $selects.filter(function() {
@@ -73,9 +74,7 @@
       if (!$select.exists()) {
         $select = $selects.last();
       }
-      setCurrentSelect($select, function() {
-        $slider.css({marginLeft: $select.position().left * -1});  
-      });
+      move($select);
     };
 
     var resetFilter = function() {
@@ -87,8 +86,13 @@
 
     var refreshSelected = function() {
       $currentOptions.removeClass('yo-combo-option-selected');
+      var $selected = null;
       if ($currentValue.val() !== '') {
-        $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').addClass('yo-combo-option-selected');
+        $selected = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').first();
+      }
+      if ($selected !== null && $selected.exists()) {
+        $selected.addClass('yo-combo-option-selected');
+        focusAtOption($selected);
       } else {
         $currentOptions.first().addClass('yo-combo-option-selected');
       }
@@ -101,7 +105,8 @@
     var refreshDisplay = function() {
       if (!isFirst($currentSelect)) {
         if (!$root.find('.yo-combo-back').exists()) {
-          $display.before('<a href="#" class="yo-combo-back">back</a>');
+          var backLabel = $currentSelect.data('back-label') || 'Back';
+          $display.before('<a href="#" class="yo-combo-back">' + backLabel + ' ·</a>');
         }
       } else {
         $root.find('.yo-combo-back').remove();
@@ -110,60 +115,93 @@
       $display.html($currentSelect.data('display'));
     };
 
-    var setCurrentSelect = function($select, callback) {
-      var prevValue = $currentValue != null ? $currentValue.val() : '';
-
-      $currentSelect = $select;
-      $currentValue = $select.find('.yo-combo-value');
-      $currentOptions = $select.find('.yo-combo-options li');
-
-      refreshDisplay();
-
-      if (!$currentOptions.exists()) { // or $select.data('ajax') !== 'cached'
-        var remoteUrl = $select.data('remote-url').replace(/\{prev\}/g, prevValue);
-        $.getJSON(remoteUrl, function(json) {
-          var option = null, html = [];
-          for (var i=0 ; i<json.count ; i++) {
-            option = json.options[i];
-            html.push('<li data-value="'+ option[0] +'">'+ option[1] +'</li>');
-          }
-          $currentSelect.find('.yo-combo-options').html(html.join(''));
-
-          $currentOptions = $select.find('.yo-combo-options li');
-          refreshSelected();
-          callback();
-        });
-      } else {
-        refreshSelected();
-        callback();
-      }
-    };
-
     var setValue = function(value) {
-      resetFilter();
+      $currentValue.val(value);
       if (value === '') {
         var $prev = $currentSelect.prev();
         if ($prev.exists()) {
-          $currentValue.val('');
+          $filter.val('');
           var _$currentOptions = $currentOptions;
-          setCurrentSelect($prev, function() {
-            $slider.animate({marginLeft: $prev.position().left * -1}, 350, function() {
-              _$currentOptions.remove();
-            });
+          move($prev, function() {
+            _$currentOptions.remove();
           });
         }
       } else {
-        $currentValue.val(value);
         var $next = $currentSelect.next();
         if ($next.exists()) {
-          setCurrentSelect($next, function() {
-            $slider.animate({marginLeft: $next.position().left * -1}, 350);
+          $filter.val('');
+          var _$currentOptions = $currentOptions;
+          move($next, function() {
+            _$currentOptions.filter(':hidden').show();
           });
         } else {
-          $display.html($currentOptions.filter('.yo-combo-option-selected').text());
           close();
         }
       }
+    };
+
+    var move = function($select, afterTransition) {
+      $currentSelect = $select;
+      $currentValue = $select.find('.yo-combo-value');
+      $currentTitle = $select.find('.yo-combo-title');
+      $currentOptions = $select.find('.yo-combo-option');
+
+      refreshDisplay();
+
+      if ($select.find('.yo-combo-option').exists()) {
+        if ($currentTitle.text() !== '') { $currentTitle.show(); } else { $currentTitle.hide(); }
+        $select.find('.yo-combo-options-wrapper').show();
+        refreshSelected();
+
+        $slider.animate({marginLeft: $select.position().left * -1}, 350, function() {
+          $select.siblings().find('.yo-combo-title, .yo-combo-options-wrapper').hide();
+          if (typeof(afterTransition) === 'function') {
+            afterTransition();
+          }
+        });
+      } else {
+        var loadingMessage = $select.data('loading-message') || 'Waiting, loading...';
+        $currentTitle.html('<span style="font-weight:normal">' + loadingMessage + '</span>').show();
+
+        $slider.animate({marginLeft: $select.position().left * -1}, 350, function() {
+          loadSelect($select, function() {
+            $currentOptions = $select.find('.yo-combo-option');
+
+            if ($currentTitle.text() !== '') { $currentTitle.show(); } else { $currentTitle.hide(); }
+            $select.find('.yo-combo-options-wrapper').show();
+            refreshSelected();
+
+            $select.siblings().find('.yo-combo-title, .yo-combo-options-wrapper').hide();
+            if (typeof(afterTransition) === 'function') {
+              afterTransition();
+            }
+          });
+        });
+      }
+    };
+
+    var loadSelect = function($select, afterLoad) {
+      var prevValue = $select.prev().find('.yo-combo-value').val();
+      var dataUrl = $select.data('remote-url').replace(/\{prev\}/g, prevValue);
+      $.getJSON(dataUrl, function(json) {
+        var html = [], option = null, optionDisplay = null;
+        for (var i=0 ; i<json.count ; i++) {
+          option = json.options[i];
+          if (typeof(option) == 'string') {
+            html.push('<li class="yo-combo-subtitle">' + option +'</li>');
+          } else {
+            optionDisplay = option[2] || option[1];
+            html.push('<li class="yo-combo-option" data-value="' + option[0] + '" data-display="' + optionDisplay + '">' + option[1] + '</li>');
+          }
+        }
+
+        $select.find('.yo-combo-title').html(json.title || '');
+        $select.find('.yo-combo-options').html(html.join(''));
+
+        if (typeof(afterLoad) === 'function') {
+          afterLoad();
+        }
+      });
     };
 
     var isLast = function($el) {
@@ -174,7 +212,7 @@
       $root.removeClass('yo-combo-on');
       $root.find('.yo-combo-back').remove();
       if (isLast($currentSelect) && $currentValue.val() !== '') {
-        var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').text();
+        var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').data('display');
         $display.html(displayValue);
       }
       $display.focus();
@@ -193,22 +231,36 @@
       }
     });
 
+    var focusAtOption = function($option) {
+      var $optionsWrapper = $currentSelect.find('.yo-combo-options-wrapper');
+      if ($option.position().top < 0) {
+        $optionsWrapper.scrollTop( $optionsWrapper.scrollTop() + $option.position().top );
+      } else if ($option.position().top + $option.outerHeight() > 200) {
+        $optionsWrapper.scrollTop( $optionsWrapper.scrollTop() + $option.position().top - 200 + $option.outerHeight() );
+      }
+    };
+
     $filter.keydown(function(ev) {
       var $selected = $currentOptions.filter('.yo-combo-option-selected');
       if (ev.keyCode === KEY.DOWN) {
-        var $next = $selected.next();
+        var $next = $selected.nextAll('.yo-combo-option:visible').first();
         if ($next.exists()) {
           $selected.removeClass('yo-combo-option-selected');
           $next.addClass('yo-combo-option-selected');
+          focusAtOption($next);
         }
       } else if (ev.keyCode === KEY.UP) {
-        var $prev = $selected.prev();
+        var $prev = $selected.prevAll('.yo-combo-option:visible').first();
         if ($prev.exists()) {
           $selected.removeClass('yo-combo-option-selected');
           $prev.addClass('yo-combo-option-selected');
+          focusAtOption($prev);
         }
       } else if (ev.keyCode === KEY.ENTER || ev.keyCode === KEY.RIGHT) {
         setValue($selected.data('value'));
+        if (ev.keyCode === KEY.ENTER) {
+          ev.preventDefault();
+        }
       } else if (ev.keyCode === KEY.LEFT) {
         setValue('');
       } else if (ev.keyCode === KEY.ESC) {
@@ -228,20 +280,20 @@
           return optionText.indexOf(filterText) > -1;
         }).show();
       } else {
-        $currentOptions.show();        
+        $currentOptions.show();
       }
       // select first
       $currentOptions.filter('.yo-combo-option-selected').removeClass('yo-combo-option-selected');
       $currentOptions.filter(':visible').first().addClass('yo-combo-option-selected');
     });
 
-    $root.on('mouseenter', '.yo-combo-options > li', function(ev) {
+    $root.on('mouseenter', '.yo-combo-option', function(ev) {
       var $this = $(this);
       $this.siblings('.yo-combo-option-selected').removeClass('yo-combo-option-selected');
       $this.addClass('yo-combo-option-selected');
     });
 
-    $root.on('click', '.yo-combo-options > li', function(ev) {
+    $root.on('click', '.yo-combo-option', function(ev) {
       $filter.focus();
       setValue($(this).data('value'));
     });
@@ -256,6 +308,6 @@
   };
 
   $(function() {
-    $('.yo-combo[data-auto-init="true"]').yocombo();  
+    $('.yo-combo[data-yo-auto-init="true"]').yocombo();
   });
 })(jQuery);
