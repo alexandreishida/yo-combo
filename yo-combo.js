@@ -246,7 +246,7 @@
       $display.focus();
     };
 
-    $display.click(function(ev) {
+    $root.find('.yo-combo-display, .yo-combo-arrow').click(function(ev) {
       ev.preventDefault();
       if (!$root.hasClass('yo-combo-on')) {
         // reset filter
