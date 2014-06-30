@@ -79,8 +79,9 @@
       var url = $input.data('url');
       var display = $input.data('display') || 'Choose one...';
       var loadingMessage = $input.data('loading-message') || 'Waiting, loading...';
+      var backLabel = $input.data('back-label') || 'Back';
       $slider.append([
-        '<div class="yo-combo-select" data-url="' + url + '" data-display="' + display + '" data-loading-message="' + loadingMessage + '">',
+        '<div class="yo-combo-select" data-url="' + url + '" data-display="' + display + '" data-loading-message="' + loadingMessage + '" data-back-label="' + backLabel + '">',
           '<input type="text" class="yo-combo-value" name="' + this.name + '" value="' + this.value + '" />',
           '<div class="yo-combo-title"></div>',
           '<div class="yo-combo-options-wrapper">',
@@ -296,8 +297,9 @@
           $currentOptions.filter(':hidden').show();
         }
         $root.addClass('yo-combo-on');
-        refreshDisplay();
         $filter.focus();
+        refreshDisplay();
+        selectOne();
       } else {
         close();
       }
