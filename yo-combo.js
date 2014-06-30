@@ -64,6 +64,9 @@
     var $currentOptions = null;
 
     var init = function() {
+      // create wrapper
+      $root.wrap('<div class="yo-combo-wrapper" style="width:' + $root.outerWidth() + 'px; height:' + $root.outerHeight() + 'px;"></div>');
+      // display default
       $display.html($selects.first().data('display'));
       // debug
       if (config.debug === true) {

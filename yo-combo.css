@@ -1,8 +1,16 @@
+
+.yo-combo-wrapper {
+  position: relative;
+  display: inline-block;
+  text-align: left;
+}
+
 .yo-combo {
   width: 200px;
   display: inline-block;
   border-radius: 4px;
   border: 1px solid #aaa;
+  box-sizing: border-box;
   background: #fafafa;
   color: #444;
   text-align: left;
@@ -141,6 +149,7 @@ li.yo-combo-option-selected {
   left: 0;
   z-index: 10000;
 }
+
 .yo-combo-on .yo-combo-dropdown {
   display: block;
 }
