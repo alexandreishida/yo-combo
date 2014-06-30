@@ -52,10 +52,44 @@
 
   var YoCombo = function(config) {
     var $root = config.$root;
+    var $inputs = $root.find('input').detach();
+
+    $root.html([
+      '<div class="yo-combo-display-wrapper">',
+        '<a href="#" class="yo-combo-display">&nbsp;</a>',
+        '<div class="yo-combo-arrow-wrapper">',
+          '<span class="yo-combo-arrow"></span>',
+        '</div>',
+      '</div>',
+      '<div class="yo-combo-dropdown">',
+        '<input type="text" class="yo-combo-filter" />',
+        '<div class="yo-combo-window">',
+          '<div class="yo-combo-slider"></div>',
+        '</div>',
+      '</div>'
+    ].join(''));
+
     var $display = $root.find('.yo-combo-display');
     var $filter = $root.find('.yo-combo-filter');
     var $window = $root.find('.yo-combo-window');
     var $slider = $root.find('.yo-combo-slider');
+
+    $inputs.each(function() {
+      var $input = $(this);
+      var url = $input.data('url');
+      var display = $input.data('display') || 'Choose one...';
+      var loadingMessage = $input.data('loading-message') || 'Waiting, loading...';
+      $slider.append([
+        '<div class="yo-combo-select" data-url="' + url + '" data-display="' + display + '" data-loading-message="' + loadingMessage + '">',
+          '<input type="text" class="yo-combo-value" name="' + this.name + '" value="' + this.value + '" />',
+          '<div class="yo-combo-title"></div>',
+          '<div class="yo-combo-options-wrapper">',
+            '<ul class="yo-combo-options"></ul>',
+          '</div>',
+        '</div>'
+      ].join(''));
+    });
+
     var $selects = $root.find('.yo-combo-select');
 
     var $currentSelect = null;
@@ -63,22 +97,28 @@
     var $currentTitle = null;
     var $currentOptions = null;
 
+    var inFocus = false;
+
     var init = function() {
-      // create wrapper
+      // add wrapper
       $root.wrap('<div class="yo-combo-wrapper" style="width:' + $root.outerWidth() + 'px; height:' + $root.outerHeight() + 'px;"></div>');
+
       // display default
       $display.html($selects.first().data('display'));
+
       // debug
       if (config.debug === true) {
         $window.css('overflow-x', 'visible');
         $root.find('.yo-combo-value').show();
       }
+
       // adapt width
       var displayWidth = $display.width();
       $slider.width(displayWidth * $selects.length);
       $selects.each(function() {
         $(this).width(displayWidth);
       });
+
       // discover current select
       var selectIdx = null, $select = null;
       for (var i=0 ; i<$selects.length ; i++) {
@@ -160,15 +200,16 @@
     };
 
     var loadSelect = function($select, afterLoad) {
-      var dataUrl = $select.data('remote-url');
-      var params = dataUrl.match(/\{select\[\d+\]\}/g);
+      var dataUrl = $select.data('url');
+
+      var params = dataUrl.match(/\{input\[\d+\]\}/g);
       if (params !== null) {
         for (var i=0 ; i<params.length ; i++) {
           var m = params[i].match(/\[(\d+)\]/);
           if (m !== null) {
-            var selectIdx = parseInt(m[1]);
-            var value = $($selects[selectIdx]).find('.yo-combo-value').val();
-            dataUrl = dataUrl.replace(new RegExp('\\{select\\['+selectIdx+'\\]\\}', 'g'), value);
+            var inputIdx = parseInt(m[1]);
+            var value = $($selects[inputIdx]).find('.yo-combo-value').val();
+            dataUrl = dataUrl.replace(new RegExp('\\{input\\['+inputIdx+'\\]\\}', 'g'), value);
           }
         }
       }
@@ -258,6 +299,18 @@
         refreshDisplay();
         $filter.focus();
       } else {
+        close();
+      }
+    });
+
+    $root.hover(function(ev) {
+      inFocus = true;
+    }, function(ev) {
+      inFocus = false;
+    });
+
+    $filter.blur(function() {
+      if (!inFocus) {
         close();
       }
     });
