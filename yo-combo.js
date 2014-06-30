@@ -157,8 +157,18 @@
     };
 
     var loadSelect = function($select, afterLoad) {
-      var prevValue = $select.prev().find('.yo-combo-value').val();
-      var dataUrl = $select.data('remote-url').replace(/\{prev\}/g, prevValue);
+      var dataUrl = $select.data('remote-url');
+      var params = dataUrl.match(/\{select\[\d+\]\}/g);
+      if (params !== null) {
+        for (var i=0 ; i<params.length ; i++) {
+          var m = params[i].match(/\[(\d+)\]/);
+          if (m !== null) {
+            var selectIdx = parseInt(m[1]);
+            var value = $($selects[selectIdx]).find('.yo-combo-value').val();
+            dataUrl = dataUrl.replace(new RegExp('\\{select\\['+selectIdx+'\\]\\}', 'g'), value);
+          }
+        }
+      }
       $.getJSON(dataUrl, function(json) {
         var html = [], option = null, optionDisplay = null;
         for (var i=0 ; i<json.count ; i++) {
@@ -204,7 +214,7 @@
     };
 
     var refreshDisplay = function() {
-      if ($root.hasClass('.yo-combo-on')) {
+      if ($root.hasClass('yo-combo-on')) {
         if (!isFirst($currentSelect)) {
           if (!$root.find('.yo-combo-back').exists()) {
             var backLabel = $currentSelect.data('back-label') || 'Back';
@@ -218,7 +228,7 @@
     };
 
     var refreshClosedDisplay = function() {
-      if (!$root.hasClass('.yo-combo-on')) {
+      if (!$root.hasClass('yo-combo-on')) {
         $root.find('.yo-combo-back').remove();
         if ($currentValue.val() !== '' && isLast($currentSelect)) {
           var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').data('display');
@@ -242,6 +252,7 @@
           $currentOptions.filter(':hidden').show();
         }
         $root.addClass('yo-combo-on');
+        refreshDisplay();
         $filter.focus();
       } else {
         close();
