@@ -105,7 +105,7 @@
       $root.wrap('<div class="yo-combo-wrapper" style="width:' + $root.outerWidth() + 'px; height:' + $root.outerHeight() + 'px;"></div>');
 
       // display default
-      $display.html($selects.first().data('display'));
+      // $display.html($selects.first().data('display'));
 
       // debug
       if (config.debug === true) {
@@ -135,9 +135,9 @@
       });
     };
 
-    var setValue = function(value) {
-      $currentValue.val(value);
-      if (value === '') {
+    var setValue = function($option) {
+      if ($option === null) {
+        $currentValue.val('');
         var $prev = $currentSelect.prev();
         if ($prev.exists()) {
           $filter.val('');
@@ -147,15 +147,20 @@
           });
         }
       } else {
-        var $next = $currentSelect.next();
-        if ($next.exists()) {
-          $filter.val('');
-          var _$currentOptions = $currentOptions;
-          move($next, function() {
-            _$currentOptions.filter(':hidden').show();
-          });
-        } else {
+        $currentValue.val($option.data('value'));
+        if ($option.data('value') === '') {
           close();
+        } else {
+          var $next = $currentSelect.next();
+          if ($next.exists()) {
+            $filter.val('');
+            var _$currentOptions = $currentOptions;
+            move($next, function() {
+              _$currentOptions.filter(':hidden').show();
+            });
+          } else {
+            close();
+          }
         }
       }
     };
@@ -218,11 +223,11 @@
         var html = [], option = null, optionDisplay = null;
         for (var i=0 ; i<json.count ; i++) {
           option = json.options[i];
-          if (typeof(option) == 'string') {
+          if (typeof(option) === 'string') {
             html.push('<li class="yo-combo-subtitle">' + option +'</li>');
           } else {
-            optionDisplay = option[2] || option[1];
-            html.push('<li class="yo-combo-option" data-value="' + option[0] + '" data-display="' + optionDisplay + '">' + option[1] + '</li>');
+            optionDisplay = option.display || option.text;
+            html.push('<li class="yo-combo-option" data-value="' + option.value + '" data-display="' + optionDisplay + '">' + option.text + '</li>');
           }
         }
 
@@ -237,11 +242,8 @@
 
     var selectOne = function() {
       $currentOptions.removeClass('yo-combo-option-selected');
-      var $selected = null;
-      if ($currentValue.val() !== '') {
-        $selected = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').first();
-      }
-      if ($selected !== null && $selected.exists()) {
+      var $selected = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').first();
+      if ($selected.exists()) {
         $selected.addClass('yo-combo-option-selected');
         focusAtOption($selected);
       } else {
@@ -275,9 +277,11 @@
     var refreshClosedDisplay = function() {
       if (!$root.hasClass('yo-combo-on')) {
         $root.find('.yo-combo-back').remove();
-        if ($currentValue.val() !== '' && isLast($currentSelect)) {
-          var displayValue = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').data('display');
-          $display.html(displayValue);
+        var $selected = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]');
+        if ($selected.exists() && ($currentValue.val() === '' || isLast($currentSelect))) {
+          $display.html($selected.data('display'));
+        } else {
+          $display.html($currentSelect.data('display'));
         }
       }
     };
@@ -334,12 +338,12 @@
           focusAtOption($prev);
         }
       } else if (ev.keyCode === KEY.ENTER || ev.keyCode === KEY.RIGHT) {
-        setValue($selected.data('value'));
+        setValue($selected);
         if (ev.keyCode === KEY.ENTER) {
           ev.preventDefault();
         }
       } else if (ev.keyCode === KEY.LEFT) {
-        setValue('');
+        setValue(null);
       } else if (ev.keyCode === KEY.ESC) {
         close();
       }
@@ -360,8 +364,12 @@
         $currentOptions.show();
       }
       // select first
-      $currentOptions.filter('.yo-combo-option-selected').removeClass('yo-combo-option-selected');
-      $currentOptions.filter(':visible').first().addClass('yo-combo-option-selected');
+      $currentOptions.removeClass('yo-combo-option-selected');
+      var $option = $currentOptions.filter(':visible').first();
+      if ($option.exists()) {
+        $option.addClass('yo-combo-option-selected');
+        focusAtOption($option);
+      }
     });
 
     $root.on('mouseenter', '.yo-combo-option', function(ev) {
@@ -372,13 +380,13 @@
 
     $root.on('click', '.yo-combo-option', function(ev) {
       $filter.focus();
-      setValue($(this).data('value'));
+      setValue($(this));
     });
 
     $root.on('click', '.yo-combo-back', function(ev) {
       ev.preventDefault();
       $filter.focus();
-      setValue('');
+      setValue(null);
     });
 
     init();
