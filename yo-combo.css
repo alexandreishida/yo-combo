@@ -101,13 +101,14 @@
 
 .yo-combo-select {
   float: left;
-  min-height: 1px;
+  /*min-height: 1px;
+  max-height: 200px;*/
+  height: 200px;
 }
 
 .yo-combo-title {
   display: none;
   padding: 3px 5px;
-  /*box-sizing: border-box;*/
   font-weight: bold;
 }
 
@@ -131,7 +132,6 @@ ul.yo-combo-options {
 
 ul.yo-combo-options > li {
   padding: 3px 5px;
-  /*box-sizing: border-box;*/
   cursor: pointer;
 }
 

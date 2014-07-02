@@ -105,7 +105,7 @@
       $root.wrap('<div class="yo-combo-wrapper" style="width:' + $root.outerWidth() + 'px; height:' + $root.outerHeight() + 'px;"></div>');
 
       // display default
-      // $display.html($selects.first().data('display'));
+      // $display.html($root.data('init-display') || 'Starting component...');
 
       // debug
       if (config.debug === true) {
@@ -243,11 +243,12 @@
     var selectOne = function() {
       $currentOptions.removeClass('yo-combo-option-selected');
       var $selected = $currentOptions.filter('[data-value="'+ $currentValue.val() +'"]').first();
+      if (!$selected.exists()) {
+        $selected = $currentOptions.first();
+      }
       if ($selected.exists()) {
         $selected.addClass('yo-combo-option-selected');
         focusAtOption($selected);
-      } else {
-        $currentOptions.first().addClass('yo-combo-option-selected');
       }
     };
 
@@ -263,10 +264,9 @@
     var refreshDisplay = function() {
       if ($root.hasClass('yo-combo-on')) {
         if (!isFirst($currentSelect)) {
-          if (!$root.find('.yo-combo-back').exists()) {
-            var backLabel = $currentSelect.data('back-label') || 'Back';
-            $display.before('<a href="#" class="yo-combo-back">' + backLabel + ' ·</a>');
-          }
+          $root.find('.yo-combo-back').remove();
+          var backLabel = $currentSelect.data('back-label') || 'Back';
+          $display.before('<a href="#" class="yo-combo-back">' + backLabel + ' ·</a>');
         } else {
           $root.find('.yo-combo-back').remove();
         }
@@ -337,13 +337,10 @@
           $prev.addClass('yo-combo-option-selected');
           focusAtOption($prev);
         }
-      } else if (ev.keyCode === KEY.ENTER || ev.keyCode === KEY.RIGHT) {
+      } else if (ev.keyCode === KEY.ENTER) {
         setValue($selected);
-        if (ev.keyCode === KEY.ENTER) {
-          ev.preventDefault();
-        }
-      } else if (ev.keyCode === KEY.LEFT) {
-        setValue(null);
+        // skip submit form
+        ev.preventDefault();
       } else if (ev.keyCode === KEY.ESC) {
         close();
       }
