@@ -221,12 +221,16 @@
       }
       $.getJSON(dataUrl, function(json) {
         var html = [], option = null, optionDisplay = null;
+        var isLastStep = isLast($select);
         for (var i=0 ; i<json.count ; i++) {
           option = json.options[i];
           if (typeof(option) === 'string') {
             html.push('<li class="yo-combo-subtitle">' + option +'</li>');
           } else {
             optionDisplay = option.display || option.text;
+            if (!isLastStep && option.value !== '') {
+              option.text = '<span>&#9656;</span>' + option.text;
+            }
             html.push('<li class="yo-combo-option" data-value="' + option.value + '" data-display="' + optionDisplay + '">' + option.text + '</li>');
           }
         }
@@ -266,7 +270,7 @@
         if (!isFirst($currentSelect)) {
           $root.find('.yo-combo-back').remove();
           var backLabel = $currentSelect.data('back-label') || 'Back';
-          $display.before('<a href="#" class="yo-combo-back">' + backLabel + ' ·</a>');
+          $display.before('<a href="#" class="yo-combo-back"><span>&#9664;</span>' + backLabel + ' ·</a>');
         } else {
           $root.find('.yo-combo-back').remove();
         }

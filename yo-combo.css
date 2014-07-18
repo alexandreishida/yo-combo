@@ -27,6 +27,13 @@
   padding-left: 5px;
 }
 
+.yo-combo-back > span {
+  font-size: 0.5em;
+  line-height: 1em;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+
 .yo-combo-display-wrapper {
   position: relative;
   height: 26px;
@@ -133,6 +140,11 @@ ul.yo-combo-options {
 ul.yo-combo-options > li {
   padding: 3px 5px;
   cursor: pointer;
+}
+
+ul.yo-combo-options > li > span {
+  float: right;
+  margin-left: 3px;
 }
 
 li.yo-combo-subtitle {
